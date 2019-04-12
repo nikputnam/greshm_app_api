@@ -1,0 +1,14 @@
+[package]
+name = "greshm_app_api"
+version = "0.1.0"
+authors = ["Nik Putnam <nputnam@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rocket = "*"
+rocket_contrib = "*"
+rust-crypto = "*"
+jwt = "*"
+serde = "*"
+serde_json = "*"
+serde_derive="*"
