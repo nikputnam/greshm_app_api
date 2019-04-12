@@ -42,6 +42,13 @@ struct Login {
     password: String
 }
 
+#[derive(Serialize, Deserialize,Debug)]
+struct Transaction {
+    from: String,
+    to: String,
+    amount: f32,
+}
+
 /// Returns true if `key` is a valid API key string.
 fn is_valid(key: &str) -> bool {
     key == "Bearer valid_api_key"
@@ -103,32 +110,52 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
         if keys.len() != 1 {
             return Outcome::Forward(());
         }
+
         match read_token(keys[0], request) {
 //            Ok(claim) => Outcome::Success(ApiKey(claim.sub)),
-            Ok(claim) => Outcome::Success(ApiKey("test".to_string())),
+            Ok(claim) => { 
+                    println!("{:?}",claim.claims); 
+                    Outcome::Success(ApiKey(claim.claims.sub.to_string())) 
+                },
             Err(_) => Outcome::Forward(())
         }
     }
 }
 
 ////////////////  JWT generation
-
+    
 #[post("/",format = "application/json", data = "<user>")]
 fn auth(user: Json<Login>) -> String {
+    let sub = format!("id_of_user({})",user.username);
+    let name = user.username.clone();
     let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
-    let my_claims = Claims { sub: "12445".to_string(), name: "nik".to_string(),iat: now };
+    let my_claims = Claims { sub: sub, name: name,iat: now };
     let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
     format!("{}\n",token)
-}
-
-#[get("/<name>/<age>")]
-fn user(name: String, age: u8, key: ApiKey) -> String {
-    format!("Hello, {} year old named {}!  {:?}\n", age, name, key )
-}
-
+}   
+    
+#[get("/")]
+fn balance(key: ApiKey) -> String {
+    format!("return the balance for {:?}\n", key )
+}  
+   
+#[get("/")]
+fn recent(key: ApiKey) -> String {
+    format!("return recent transactions for {:?}\n", key )
+}  
+   
+#[post("/", data = "<tx>"  )]
+fn spend(tx: Json<Transaction>, key: ApiKey) -> String {
+//    format!("spend {:?}\n", tx )
+    format!("spend {:?}\n",tx)
+}  
+   
 fn main() {
     rocket::ignite()
         .mount("/auth", routes![auth])
-        .mount("/", routes![user])
+        .mount("/balance", routes![balance])
+        .mount("/recent", routes![recent])
+        .mount("/spend", routes![spend])
         .launch();
-}
+}     
+   
