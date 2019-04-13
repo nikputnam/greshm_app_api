@@ -1,13 +1,13 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use] extern crate rocket;
-#[macro_use] extern crate rocket_contrib;
+//#[macro_use] extern crate rocket_contrib;
 #[macro_use] extern crate serde_derive;
 
 use rocket::Outcome;
-use rocket::http::Status;
+//use rocket::http::Status;
 use rocket::request::{self, Request, FromRequest};
-use rocket::http::uri::Origin;
+//use rocket::http::uri::Origin;
 
 use rocket_contrib::json::Json;
 
@@ -19,7 +19,7 @@ extern crate jsonwebtoken as jwt;
 //pub extern crate rustc_serialize;
 
 //use self::crypto::digest::Digest;
-use self::crypto::sha2::Sha256;
+//se self::crypto::sha2::Sha256;
 
 //////////  JWT validation
 
@@ -49,8 +49,8 @@ struct Transaction {
     amount: f32,
 }
 
-pub fn read_token(key: &str, request: &Request) -> Result<jwt::TokenData<Claims>, jwt::errors::Error> {
-    let mut validation = Validation {
+pub fn read_token(key: &str) -> Result<jwt::TokenData<Claims>, jwt::errors::Error> {
+    let validation = Validation {
         leeway: 60, 
         validate_exp: false, 
         validate_nbf: false, 
@@ -83,7 +83,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
             return Outcome::Forward(());
         }
 
-        match read_token(keys[0], request) {
+        match read_token(keys[0]) {
             Ok(claim) => { 
                     println!("{:?}",claim.claims); 
                     Outcome::Success(ApiKey(claim.claims.sub.to_string())) 
@@ -116,7 +116,7 @@ fn recent(key: ApiKey) -> String {
 }  
    
 #[post("/", data = "<tx>"  )]
-fn spend(tx: Json<Transaction>, key: ApiKey) -> String {
+fn spend(tx: Json<Transaction>, _key: ApiKey) -> String {
 //    format!("spend {:?}\n", tx )
     format!("spend {:?}\n",tx)
 }  
