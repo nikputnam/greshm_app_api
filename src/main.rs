@@ -49,42 +49,17 @@ struct Transaction {
     amount: f32,
 }
 
-/// Returns true if `key` is a valid API key string.
-fn is_valid(key: &str) -> bool {
-    key == "Bearer valid_api_key"
-}
-
 pub fn read_token(key: &str, request: &Request) -> Result<jwt::TokenData<Claims>, jwt::errors::Error> {
-
-    // Changing one parameter
-    let mut validation = Validation {leeway: 60, validate_exp: false, validate_nbf: false, ..Default::default()};
-
-//    let token = Token::<Header, Registered>::parse(key);
-    println!("{:?}",key);
+    let mut validation = Validation {
+        leeway: 60, 
+        validate_exp: false, 
+        validate_nbf: false, 
+        ..Default::default()};
 
     let token = decode::<Claims>(&key, "secret_key".as_ref(), &validation);
         println!("{:?}",token);
     token
-/*
-    match token {
-        Err(e) => Err(e),
-        Ok(claims) => Ok(claims.sub)
-    }
-    */
-//        .map_err(|_| "Token not valid".to_string())?;
-//    println!("{:?}",token);
- //   Ok(token.claims.sub) 
-    //.ok_or("Claims not valid".to_string())
-/*
-    if token.verify(b"secret_key", Sha256::new()) {
-        println!("token: {:?}",token);
-        let uri: &Origin = request.uri();
-        println!("request.uri: {:?}",uri);
-        token.claims.sub.ok_or("Claims not valid".to_string())
-    } else {
-        Err("Token not valid".to_string())
-    }
-    */
+
 }
 
 #[derive(Debug)]
@@ -103,16 +78,12 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
         let keys: Vec<_> = request.headers().get("Authorization").collect();
         println!("nkeys:  {}",keys.len());
         println!("key: {:?}",keys);
-        //for k in &keys {
-        //    println!("{}", k)
-        //}
-        //println!("{:?}",this)
+    
         if keys.len() != 1 {
             return Outcome::Forward(());
         }
 
         match read_token(keys[0], request) {
-//            Ok(claim) => Outcome::Success(ApiKey(claim.sub)),
             Ok(claim) => { 
                     println!("{:?}",claim.claims); 
                     Outcome::Success(ApiKey(claim.claims.sub.to_string())) 
@@ -123,7 +94,6 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
 }
 
 ////////////////  JWT generation
-    
 #[post("/",format = "application/json", data = "<user>")]
 fn auth(user: Json<Login>) -> String {
     let sub = format!("id_of_user({})",user.username);
@@ -133,7 +103,8 @@ fn auth(user: Json<Login>) -> String {
     let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
     format!("{}\n",token)
 }   
-    
+
+
 #[get("/")]
 fn balance(key: ApiKey) -> String {
     format!("return the balance for {:?}\n", key )
