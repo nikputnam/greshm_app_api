@@ -6,9 +6,13 @@ edition = "2018"
 
 [dependencies]
 rocket = "*"
-rocket_contrib = "*"
 rust-crypto = "*"
 jsonwebtoken = "*"
 serde = "*"
 serde_json = "*"
 serde_derive="*"
+
+[dependencies.rocket_contrib]
+version = "0.4.0"
+default-features = false
+features = ["diesel_sqlite_pool", "json"]

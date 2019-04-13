@@ -1,14 +1,14 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use] extern crate rocket;
-//#[macro_use] extern crate rocket_contrib;
+#[macro_use] extern crate rocket_contrib;
 #[macro_use] extern crate serde_derive;
 
 use rocket::Outcome;
 //use rocket::http::Status;
 use rocket::request::{self, Request, FromRequest};
 //use rocket::http::uri::Origin;
-
+use rocket_contrib::databases::diesel;
 use rocket_contrib::json::Json;
 
 
@@ -21,8 +21,10 @@ extern crate jsonwebtoken as jwt;
 //se self::crypto::sha2::Sha256;
 
 pub mod authorize;
+//pub mod store;
 
-//use crate::authorize;
+#[database("sqlite_db")]
+struct Conn(diesel::SqliteConnection);
 
 #[derive(Serialize, Deserialize,Debug)]
 struct Transaction {
@@ -32,18 +34,19 @@ struct Transaction {
 }
 
 #[get("/")]
-fn balance(key: authorize::AuthToken) -> String {
+fn balance(conn: Conn, key: authorize::AuthToken) -> String {
     format!("return the balance for {:?}\n", key )
 }  
    
 #[get("/")]
-fn recent(key: authorize::AuthToken) -> String {
+fn recent(conn: Conn, key: authorize::AuthToken) -> String {
     format!("return recent transactions for {:?}\n", key )
 }  
    
 #[post("/", data = "<tx>"  )]
-fn spend(tx: Json<Transaction>, _key: authorize::AuthToken ) -> Result<String,authorize::AuthTokenError> {
+fn spend(conn: Conn, tx: Json<Transaction>, _key: authorize::AuthToken ) -> Result<String,authorize::AuthTokenError> {
 
+//    println!("{:?}",conn);
     //It's an error if the spend is not from the authorized user!
     if !(tx.from == _key.0 ) { return Err(authorize::AuthTokenError::UserMismatch) }
 
@@ -52,6 +55,7 @@ fn spend(tx: Json<Transaction>, _key: authorize::AuthToken ) -> Result<String,au
    
 fn main() {
     rocket::ignite()
+        .attach(Conn::fairing())
         .mount("/auth", routes![authorize::auth])
         .mount("/balance", routes![balance])
         .mount("/recent", routes![recent])
