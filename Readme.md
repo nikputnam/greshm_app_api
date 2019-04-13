@@ -28,3 +28,4 @@ curl -X POST --data '{ "from": "alex", "to": "nik", "amount": 1200.00 }' \
 * Check passwords on auth request
 * Log transactions & update balances
 * Check validity of spend txs
+* Write tests
