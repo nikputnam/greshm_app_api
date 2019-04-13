@@ -23,8 +23,6 @@ curl -X POST --data '{ "from": "alex", "to": "nik", "amount": 1200.00 }' \
 
 # TODO:
 
-* complete integration of in-memory storage
-* update balances
 * Check validity of spend txs (sufficient funds)
 * Write tests
 * Attach persistent storage 

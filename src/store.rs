@@ -6,7 +6,7 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub password: String,
-    pub balanace: f32,
+    pub balance: f32,
     pub balance_time: u128,
 }
 

@@ -123,7 +123,7 @@ pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<S
         username: user.username.clone(),
         email: user.username.clone(),
         password: user.password.clone(),
-        balanace: 0.0,
+        balance: 0.0,
         balance_time: SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() ,
      } ;
 

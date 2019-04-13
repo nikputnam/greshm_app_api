@@ -33,6 +33,12 @@ EOM
 curl -X POST --data '{ "from": "nik", "to": "alex", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
 
 
+cat << 'EOM'
+]$ curl  -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/balance
+EOM
+curl  -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/balance
+
+
 
 
 
