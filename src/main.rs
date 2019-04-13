@@ -32,19 +32,22 @@ struct Transaction {
 }
 
 #[get("/")]
-fn balance(key: authorize::ApiKey) -> String {
+fn balance(key: authorize::AuthToken) -> String {
     format!("return the balance for {:?}\n", key )
 }  
    
 #[get("/")]
-fn recent(key: authorize::ApiKey) -> String {
+fn recent(key: authorize::AuthToken) -> String {
     format!("return recent transactions for {:?}\n", key )
 }  
    
 #[post("/", data = "<tx>"  )]
-fn spend(tx: Json<Transaction>, _key: authorize::ApiKey) -> String {
-//    format!("spend {:?}\n", tx )
-    format!("spend {:?}\n",tx)
+fn spend(tx: Json<Transaction>, _key: authorize::AuthToken ) -> Result<String,authorize::AuthTokenError> {
+
+    //It's an error if the spend is not from the authorized user!
+    if !(tx.from == _key.0 ) { return Err(authorize::AuthTokenError::UserMismatch) }
+
+    Ok(format!("spend {:?}\n",tx))
 }  
    
 fn main() {
@@ -54,5 +57,4 @@ fn main() {
         .mount("/recent", routes![recent])
         .mount("/spend", routes![spend])
         .launch();
-}     
-   
+}

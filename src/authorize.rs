@@ -18,15 +18,16 @@ pub struct Claims {
 }
 
 #[derive(Debug)]
-pub struct ApiKey(String);
+pub struct AuthToken(pub String);
+
+#[derive(Debug)]
+pub struct SpenderMatch(String);
 
 #[derive(Serialize, Deserialize,Debug)]
 pub struct Login {
     username: String,
     password: String
 }
-
-
 
 pub fn read_token(key: &str) -> Result<jwt::TokenData<Claims>, jwt::errors::Error> {
     let validation = Validation {
@@ -42,22 +43,21 @@ pub fn read_token(key: &str) -> Result<jwt::TokenData<Claims>, jwt::errors::Erro
 }
 
 #[derive(Debug)]
-pub enum ApiKeyError {
+pub enum AuthTokenError {
     BadCount,
     Missing,
     Invalid,
+    UserMismatch,
 }
 
 //adapted from https://api.rocket.rs/v0.4/rocket/request/trait.FromRequest.html
 // and from https://github.com/marcocastignoli/rust_rocket_api_authentication/blob/master/src/user/auth.rs 
-impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
-    type Error = ApiKeyError;
+impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
+    type Error = AuthTokenError;
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("Authorization").collect();
-        println!("nkeys:  {}",keys.len());
-        println!("key: {:?}",keys);
-    
+
         if keys.len() != 1 {
             return Outcome::Forward(());
         }
@@ -65,17 +65,20 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
         match read_token(keys[0]) {
             Ok(claim) => { 
                     println!("{:?}",claim.claims); 
-                    Outcome::Success(ApiKey(claim.claims.sub.to_string())) 
+                    Outcome::Success(AuthToken(claim.claims.sub.to_string())) 
                 },
             Err(_) => Outcome::Forward(())
         }
     }
 }
 
+
+
 ////////////////  JWT generation
 #[post("/",format = "application/json", data = "<user>")]
 pub fn auth(user: Json<Login>) -> String {
-    let sub = format!("id_of_user({})",user.username);
+//    let sub = format!("id_of_user({})",user.username);
+    let sub = format!("{}",user.username);  //TODO: replace this with an internal ID
     let name = user.username.clone();
     let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
     let my_claims = Claims { sub: sub, name: name,iat: now };
