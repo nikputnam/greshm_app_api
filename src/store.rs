@@ -1,12 +1,15 @@
 use std::sync::RwLock;
 
-
+#[derive(Debug)]
 pub struct User {
-    id: i32,
-    name: String,
-    email: String,
-    password: String
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+    pub password: String,
+    pub balanace: f32,
+    pub balance_time: u128,
 }
+
 /*
 pub struct Transaction {
     from: String,

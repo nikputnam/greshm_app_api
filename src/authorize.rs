@@ -4,6 +4,7 @@ use rocket::Outcome;
 use rocket::request::{self, Request, FromRequest};
 use std::time::{SystemTime, UNIX_EPOCH};
 use rocket_contrib::json::Json;
+use rocket::State;
 
     //////////  JWT validation
 
@@ -25,6 +26,12 @@ pub struct SpenderMatch(String);
 
 #[derive(Serialize, Deserialize,Debug)]
 pub struct Login {
+    username: String,
+    password: String
+}
+
+#[derive(Serialize, Deserialize,Debug)]
+pub struct Signup {
     username: String,
     password: String
 }
@@ -75,17 +82,67 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
 
 
 ////////////////  JWT generation
+#[post("/",format = "application/json", data = "<data>")]
+pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<String, AuthTokenError> {
+
+    let mut users = store.users.read().unwrap();
+
+    let mut matched = false;
+
+    for u in &(*users) {
+        if (( u.username == data.username ) && ( u.password == data.password ))  { matched = true; }
+    }
+
+    if (!matched) { return Err( AuthTokenError::UserMismatch ) } 
+
+
+    let sub = format!("{}",data.username);  //TODO: replace this with an internal ID
+    let name = data.username.clone();
+    let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+    let my_claims = Claims { sub: sub, name: name,iat: now };
+    let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
+    Ok(format!("{}\n",token))
+}   
+
+
+////////////////  User signup
 #[post("/",format = "application/json", data = "<user>")]
-pub fn auth(user: Json<Login>) -> String {
+pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<String, AuthTokenError> {
+
+    let mut matched = false;
+    {
+    let mut users = store.users.read().unwrap();
+    for u in &(*users) {
+        if ( u.username == user.username )  { matched = true; }
+    }
+    if (matched) { return Err( AuthTokenError::Invalid ) }   // User already exists
+    }
+
+    let new_user = super::store::User { 
+        id: 0 ,
+        username: user.username.clone(),
+        email: user.username.clone(),
+        password: user.password.clone(),
+        balanace: 0.0,
+        balance_time: SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() ,
+     } ;
+
+    let mut users = store.users.write().unwrap();
+//    println!("{:?}",users);
+//    println!("{:?}",*users);
+      (*users).push(new_user);
+
+  //  Ok(format!("spend {:?}\n",tx_json))
+
 //    let sub = format!("id_of_user({})",user.username);
     let sub = format!("{}",user.username);  //TODO: replace this with an internal ID
     let name = user.username.clone();
     let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
     let my_claims = Claims { sub: sub, name: name,iat: now };
     let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
-    format!("{}\n",token)
-}   
-
+//    format!("{}\n",token)
+    Ok(format!("new user"))
+} 
 
 
 

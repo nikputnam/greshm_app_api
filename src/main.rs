@@ -47,23 +47,47 @@ fn balance(store: State<store::Store>, key: authorize::AuthToken) -> String {
 }  
    
 #[get("/")]
-fn recent(store: State<store::Store>, key: authorize::AuthToken) -> String {
-    format!("return recent transactions for {:?}\n", key )
+fn dump(store: State<store::Store>) -> String {
+
+    {
+    let mut ttx = store.txs.read().unwrap();
+    println!("txs: {:?}",ttx);
+    }
+    {
+    let mut users = store.users.read().unwrap();
+    println!("users: {:?}",users);
+    }
+
+    format!("Ok")
+}  
+
+#[get("/")]
+fn recent(store: State<store::Store>, key: authorize::AuthToken) -> Json<Vec<Transaction>> {
+
+   let mut ttx = store.txs.read().unwrap();
+    println!("{:?}",ttx);
+    println!("{:?}",*ttx);
+
+    let mut result = Vec::new(); 
+
+    for k in &(*ttx) {
+        if !(( k.from == key.0 )||( k.to == key.0 ))  { continue; }
+        result.push( Transaction::new(&k.from, &k.to, &k.amount) );
+    }
+
+    Json(result)
 }  
    
 #[post("/", data = "<tx_json>"  )]
-fn spend(store: State<store::Store>, tx_json: Json<Transaction>, _key: authorize::AuthToken ) -> Result<String,authorize::AuthTokenError> {
+fn spend(store: State<store::Store>, tx_json: Json<Transaction>, key: authorize::AuthToken ) -> Result<String,authorize::AuthTokenError> {
 
-//    println!("{:?}",conn);
+        println!("{:?}",tx_json);
     //It's an error if the spend is not from the authorized user!
-    if !(tx_json.from == _key.0 ) { return Err(authorize::AuthTokenError::UserMismatch) }
+    if !(tx_json.from == key.0 ) { return Err(authorize::AuthTokenError::UserMismatch) }
 
     let tx = Transaction::new( &tx_json.from, &tx_json.to, &tx_json.amount );
-//    store.txs.push( tx ) ; 
 
     let mut ttx = store.txs.write().unwrap();
-    println!("{:?}",ttx);
-    println!("{:?}",*ttx);
     (*ttx).push(tx);
 
     Ok(format!("spend {:?}\n",tx_json))
@@ -77,8 +101,10 @@ fn main() {
 //        .attach(Conn::fairing())
         .manage(store)
         .mount("/auth", routes![authorize::auth])
+        .mount("/signup", routes![authorize::signup])
         .mount("/balance", routes![balance])
         .mount("/recent", routes![recent])
         .mount("/spend", routes![spend])
+        .mount("/dump", routes![dump])
         .launch();
 }
