@@ -24,9 +24,7 @@ curl -X POST --data '{ "from": "alex", "to": "nik", "amount": 1200.00 }' \
 # TODO:
 
 * complete integration of in-memory storage
-* Add 'new account' endpoint that saves password (if account doesn't exist)
-* Check passwords on auth request
-* Log transactions & update balances
-* Check validity of spend txs
+* update balances
+* Check validity of spend txs (sufficient funds)
 * Write tests
 * Attach persistent storage 
