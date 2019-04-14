@@ -1,2 +1,2 @@
-[global.databases]
-sqlite_db = { url = "/Users/nik/greshm/greshm_app_api/database.sqlite" }
+#[global.databases]
+#sqlite_db = { url = "/Users/nik/greshm/greshm_app_api/database.sqlite" }

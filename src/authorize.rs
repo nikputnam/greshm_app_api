@@ -83,18 +83,17 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
 
 ////////////////  JWT generation
 #[post("/",format = "application/json", data = "<data>")]
-pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<String, AuthTokenError> {
+pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<String, String> {
 
-    let mut users = store.users.read().unwrap();
+    let users = store.users.read().unwrap();
 
     let mut matched = false;
 
     for u in &(*users) {
-        if (( u.username == data.username ) && ( u.password == data.password ))  { matched = true; }
+        if ( u.username == data.username ) && ( u.password == data.password ) { matched = true; }
     }
 
-    if (!matched) { return Err( AuthTokenError::UserMismatch ) } 
-
+    if !matched { return Err( "Unknown user/pw pair".to_string() ) } 
 
     let sub = format!("{}",data.username);  //TODO: replace this with an internal ID
     let name = data.username.clone();
@@ -109,15 +108,8 @@ pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<Stri
 #[post("/",format = "application/json", data = "<user>")]
 pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<String, AuthTokenError> {
 
-    let mut matched = false;
-    {
-    let mut users = store.users.read().unwrap();
-    for u in &(*users) {
-        if ( u.username == user.username )  { matched = true; }
-    }
-    if (matched) { return Err( AuthTokenError::Invalid ) }   // User already exists
-    }
-
+    if store.user_exists(&user.username) { return Err( AuthTokenError::Invalid ) }   // User already exists
+    
     let new_user = super::store::User { 
         id: 0 ,
         username: user.username.clone(),
@@ -128,19 +120,7 @@ pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<S
      } ;
 
     let mut users = store.users.write().unwrap();
-//    println!("{:?}",users);
-//    println!("{:?}",*users);
-      (*users).push(new_user);
-
-  //  Ok(format!("spend {:?}\n",tx_json))
-
-//    let sub = format!("id_of_user({})",user.username);
-    let sub = format!("{}",user.username);  //TODO: replace this with an internal ID
-    let name = user.username.clone();
-    let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
-    let my_claims = Claims { sub: sub, name: name,iat: now };
-    let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
-//    format!("{}\n",token)
+    (*users).push(new_user);
     Ok(format!("new user"))
 } 
 

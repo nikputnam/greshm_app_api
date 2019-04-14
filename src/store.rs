@@ -1,4 +1,6 @@
 use std::sync::RwLock;
+use std::error::Error;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
 pub struct User {
@@ -10,27 +12,90 @@ pub struct User {
     pub balance_time: u128,
 }
 
-/*
-pub struct Transaction {
-    from: String,
-    to: String,
-    amount: f32
-}
-*/
-
 pub struct Store {
 
     pub users: RwLock<Vec<User>>,
     pub txs: RwLock<Vec<super::Transaction>>,
+    pub mint_rate: RwLock<f32>,
 
 }
 
 impl Store {
-        pub fn new() -> Store {
-            Store { 
-                users: RwLock::new( vec![] ), 
-                txs: RwLock::new( vec![] )
-             } 
-        }
+    pub fn new() -> Store {
+        Store { 
+            users:     RwLock::new( vec![] ), 
+            txs:       RwLock::new( vec![] ),
+            mint_rate: RwLock::new( 0.001 )
+
+            } 
     }
+
+    pub fn user_exists( &self, username: &String) -> bool {
+        let users = self.users.read().unwrap();
+        for user in &(*users) {
+            if  user.username == *username  {
+                return true
+            }
+        }
+        return false
+    }
+
+    pub fn get_balance_for_username( &self, username: &String) -> Result<super::Balance,String> {
+        println!("get balance for {}", username);
+        let users = self.users.read().unwrap();
+        let mut b=0.0;
+        let mut time=0;
+        let mut found=false;
+        for user in &(*users) {
+            if  user.username == *username  {
+                found=true;
+                time = user.balance_time.clone();
+                b    = user.balance.clone();
+            }
+        }
+//        if !found { return Err(super::authorize::AuthTokenError::UserMismatch)  }
+        if !found {println!("not found"); return Err("No such user".to_string()) ;} ;
+        println!("found");
+
+        Ok( super::Balance { balance: b, balance_time: time } )
+
+    }
+
+
+    pub fn add_spend( &self, tx: super::Transaction) -> Result<String,String> {
+
+        if ! self.user_exists(&tx.to) { return Err("Recipient unknown\n".to_string()) }
+
+        let mut ttx   = self.txs.write().unwrap();       //get both locks so they stay in sync.
+        let mut users = self.users.write().unwrap();
+        let mint_rate = self.mint_rate.read().unwrap();
+
+        let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+
+        //Check for sufficient funds
+        for user in  &mut(*users) {
+            if  user.username == tx.from  {
+                let time_delta : f32 = (now - user.balance_time) as f32;
+                if (user.balance + time_delta * (*mint_rate) ) < tx.amount {
+                    return Err("insufficient funds\n".to_string())
+                }
+            }
+        }
+
+        for user in  &mut(*users) {
+            if  user.username == tx.from  {
+                user.balance = user.balance - tx.amount;
+            }
+            if user.username == tx.to  {
+                user.balance = user.balance + tx.amount;
+            }
+        }
+        (*ttx).push(tx);
+
+        Ok("added spend".to_string())
+    }
+
+
+
+}
 
