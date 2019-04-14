@@ -85,30 +85,24 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
 #[post("/",format = "application/json", data = "<data>")]
 pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<String, String> {
 
-    let users = store.users.read().unwrap();
-
-    let mut matched = false;
-
-    for u in &(*users) {
-        if ( u.username == data.username ) && ( u.password == data.password ) { matched = true; }
+    if let Ok(_) = store.valid_password( &data.username, &data.password  ) {
+        let sub = format!("{}",data.username);  //TODO: replace this with an internal ID
+        let name = data.username.clone();
+        let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+        let my_claims = Claims { sub: sub, name: name,iat: now };
+        let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
+        Ok(format!("{}\n",token))
+    } else {
+        Err("Authentication failed".to_string())
     }
-
-    if !matched { return Err( "Unknown user/pw pair".to_string() ) } 
-
-    let sub = format!("{}",data.username);  //TODO: replace this with an internal ID
-    let name = data.username.clone();
-    let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
-    let my_claims = Claims { sub: sub, name: name,iat: now };
-    let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
-    Ok(format!("{}\n",token))
 }   
 
 
 ////////////////  User signup
 #[post("/",format = "application/json", data = "<user>")]
-pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<String, AuthTokenError> {
+pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<String, String> {
 
-    if store.user_exists(&user.username) { return Err( AuthTokenError::Invalid ) }   // User already exists
+    if store.user_exists(&user.username) { return Err( "Username already registered".to_string() ) }   // User already exists
     
     let new_user = super::store::User { 
         id: 0 ,
@@ -119,9 +113,10 @@ pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<S
         balance_time: SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() ,
      } ;
 
-    let mut users = store.users.write().unwrap();
-    (*users).push(new_user);
-    Ok(format!("new user"))
+//    let mut users = store.users.write().unwrap();
+    store.add_user(new_user)
+  //  (*users).push(new_user);
+    //Ok(format!("new user"))
 } 
 
 

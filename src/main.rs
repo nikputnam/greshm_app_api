@@ -60,6 +60,7 @@ fn balance(store: State<store::Store>, key: authorize::AuthToken) -> Result<Json
     }
 }  
    
+/*
 #[get("/")]
 fn dump(store: State<store::Store>) -> String {
 
@@ -74,32 +75,31 @@ fn dump(store: State<store::Store>) -> String {
 
     format!("Ok")
 }  
-
+*/
 #[get("/")]
-fn recent(store: State<store::Store>, key: authorize::AuthToken) -> Json<Vec<Transaction>> {
+fn recent(store: State<store::Store>, key: authorize::AuthToken) -> Result<Json<Vec<Transaction>>,String> {
 
-   let ttx = store.txs.read().unwrap();
+    let r = store.get_recent_txs(key.0);
 
-    let mut result = Vec::new(); 
-
-    for k in &(*ttx) {
-        if !(( k.from == key.0 )||( k.to == key.0 ))  { continue; }
-        result.push( k.clone() );
+    match r {
+        Err(_) => Err("Failed to retreive transactions".to_string()),
+        Ok(rr) => Ok(Json(rr))
     }
-    Json(result)
+ 
 }  
    
-#[post("/", data = "<tx_json>"  )]
-fn spend(store: State<store::Store>, tx_json: Json<RawTransaction>, key: authorize::AuthToken ) 
+
+
+#[get("/<recipient>/<amount>" )]
+fn spend(recipient:String, amount:f32,  key: authorize::AuthToken , store: State<store::Store>) 
                     -> Result<String,String> {
 
-        println!("{:?}",tx_json);
+     //   println!("{:?}",tx_json);
     //It's an error if the spend is not from the authorized user!
-    if ! (tx_json.from == key.0)  { return Err("Unauthorized spend transaction\n".to_string()) }
+    //if ! (tx_json.from == key.0)  { return Err("Unauthorized spend transaction\n".to_string()) }
 
-    let tx = Transaction::new( &tx_json.from, &tx_json.to, &tx_json.amount );
+    let tx = Transaction::new( &key.0, &recipient, &amount );
     store.add_spend(tx)
-
 }  
    
 fn main() {
@@ -114,6 +114,6 @@ fn main() {
         .mount("/balance", routes![balance])  // get user balance 
         .mount("/recent", routes![recent])  // get user's transactions
         .mount("/spend", routes![spend])  // submit a TX
-        .mount("/dump", routes![dump])  // debug:  triggers dump of datastore to the server console log
+ //       .mount("/dump", routes![dump])  // debug:  triggers dump of datastore to the server console log
         .launch();
 }

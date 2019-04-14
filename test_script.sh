@@ -32,22 +32,30 @@ token=`curl -s -X POST -H 'Accept: application/json' -H 'Content-Type: applicati
 echo $token
 echo; echo;
 
-echo "Try to spend as bob"
+#echo "Try to spend as bob"
+#cat << 'EOM'
+#]$ curl -X POST --data '{ "from": "bob", "to": "nik", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+#EOM
+#curl -X POST --data '{ "from": "bob", "to": "nik", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+#echo
+#echo; echo;
+
+#echo "Try to spend as as nik, to alex"
+#cat << 'EOM'
+#]$ curl -X POST --data '{ "from": "nik", "to": "alex", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+#EOM
+#curl -X POST --data '{ "from": "nik", "to": "alex", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+#echo
+#echo; echo;
+
+
+echo "Try to spend as as nik, to bob"
 cat << 'EOM'
-]$ curl -X POST --data '{ "from": "bob", "to": "nik", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+]$ curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/1200.00
 EOM
-curl -X POST --data '{ "from": "bob", "to": "nik", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/1200.00
 echo
 echo; echo;
-
-echo "Try to spend as as nik, to alex"
-cat << 'EOM'
-]$ curl -X POST --data '{ "from": "nik", "to": "alex", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
-EOM
-curl -X POST --data '{ "from": "nik", "to": "alex", "amount": 1200.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
-echo
-echo; echo;
-
 
 echo "check balance"
 cat << 'EOM'
@@ -57,25 +65,18 @@ curl  -H 'Accept: application/json' -H "Authorization: ${token}" http://localhos
 echo
 echo; echo;
 
-echo "Try to spend as as nik, to bob"
-cat << 'EOM'
-]$ curl -X POST --data '{ "from": "nik", "to": "bob", "amount": 1.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
-EOM
-curl -X POST --data '{ "from": "nik", "to": "bob", "amount": 1.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
-echo
-echo; echo;
-
 echo "Wait 1 s"
 sleep 1
 echo; echo;
 
-echo "Try to spend as as nik, to bob, after receipt of basic income"
+echo "Try to spend as as nik, to bob"
 cat << 'EOM'
-]$ curl -X POST --data '{ "from": "nik", "to": "bob", "amount": 1.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+]$ curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/1.01
 EOM
-curl -X POST --data '{ "from": "nik", "to": "bob", "amount": 1.00 }' -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend
+curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/1.01
 echo
 echo; echo;
+
 
 echo "check balance for nik"
 cat << 'EOM'

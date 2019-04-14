@@ -1,5 +1,5 @@
 use std::sync::RwLock;
-use std::error::Error;
+//use std::error::Error;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
@@ -14,9 +14,9 @@ pub struct User {
 
 pub struct Store {
 
-    pub users: RwLock<Vec<User>>,
-    pub txs: RwLock<Vec<super::Transaction>>,
-    pub mint_rate: RwLock<f32>,
+     users: RwLock<Vec<User>>,
+     txs: RwLock<Vec<super::Transaction>>,
+     mint_rate: RwLock<f32>,
 
 }
 
@@ -61,6 +61,41 @@ impl Store {
 
     }
 
+    pub fn valid_password( &self, username: &String, password: &String) -> Result<String,String> {
+
+    //validity = store.valid_password( data.username, data.password  );
+
+        let users = self.users.read().unwrap();
+
+        let mut matched = false;
+
+        for u in &(*users) {
+            if ( u.username == *username ) && ( u.password == *password ) { matched = true; }
+        }
+
+        if !matched { return Err( "Unknown user/pw pair".to_string() ) } 
+        return Ok("password ok".to_string())
+    }
+
+
+    pub fn add_user( &self, new_user: User) -> Result<String,String> {
+        let mut users = self.users.write().unwrap();
+  //  store.add_user(new_user);
+        (*users).push(new_user);
+        Ok("added user".to_string())
+    }
+
+    pub fn get_recent_txs( &self, user: String) -> Result< Vec<super::Transaction> ,String> {
+
+        let ttx = self.txs.read().unwrap();
+        let mut result = Vec::new(); 
+
+        for k in &(*ttx) {
+            if !(( k.from == user )||( k.to == user ))  { continue; }
+            result.push( k.clone() );
+        }
+        Ok(result)
+    }
 
     pub fn add_spend( &self, tx: super::Transaction) -> Result<String,String> {
 
