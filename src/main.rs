@@ -5,7 +5,12 @@
 #[macro_use] extern crate serde_derive;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use rocket_cors ;
+use rocket_cors::{AllowedHeaders, AllowedOrigins, Error};
+
 use rocket::State;
+use rocket::http::Method;
+
 //use rocket_contrib::databases::diesel;
 use rocket_contrib::json::Json;
 
@@ -106,9 +111,26 @@ fn main() {
 
     let store = store::Store::new() ;
 
+
+    let allowed_origins = AllowedOrigins::all();
+
+
+    // You can also deserialize this
+    let cors = rocket_cors::CorsOptions {
+        allowed_origins,
+        allowed_methods: vec![Method::Get, Method::Post].into_iter().map(From::from).collect(),
+ //       allowed_headers: AllowedHeaders::some(&["Authorization", "Accept"]),
+         allowed_headers: AllowedHeaders::all(),
+        allow_credentials: true,
+        ..Default::default()
+    }
+    .to_cors().unwrap() ;
+
+
     rocket::ignite()
 //        .attach(Conn::fairing())
         .manage(store)
+        .attach(cors)
         .mount("/auth", routes![authorize::auth])        // log in
         .mount("/signup", routes![authorize::signup])  // create a new account
         .mount("/balance", routes![balance])  // get user balance 

@@ -5,6 +5,8 @@ use rocket::request::{self, Request, FromRequest};
 use std::time::{SystemTime, UNIX_EPOCH};
 use rocket_contrib::json::Json;
 use rocket::State;
+use rocket::response::status;
+
 
     //////////  JWT validation
 
@@ -100,9 +102,12 @@ pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<Stri
 
 ////////////////  User signup
 #[post("/",format = "application/json", data = "<user>")]
-pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<String, String> {
+pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<String, status::BadRequest<String> > {
 
-    if store.user_exists(&user.username) { return Err( "Username already registered".to_string() ) }   // User already exists
+    if store.user_exists(&user.username) { 
+        //return Err( "Username already registered".to_string() ) 
+        return Err( status::BadRequest(Some("Username already registered.".to_string())));
+    }   // User already exists
     
     let new_user = super::store::User { 
         id: 0 ,
@@ -114,7 +119,10 @@ pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<S
      } ;
 
 //    let mut users = store.users.write().unwrap();
-    store.add_user(new_user)
+    match store.add_user(new_user)  {
+        Ok(a) => Ok(a),
+        Err(e) => Err(status::BadRequest(Some(e.clone())))
+    }
   //  (*users).push(new_user);
     //Ok(format!("new user"))
 } 
