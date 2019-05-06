@@ -1,12 +1,9 @@
-
-
 use rocket::Outcome;
 use rocket::request::{self, Request, FromRequest};
 use std::time::{SystemTime, UNIX_EPOCH};
 use rocket_contrib::json::Json;
 use rocket::State;
 use rocket::response::status;
-
 
     //////////  JWT validation
 
@@ -67,7 +64,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("Authorization").collect();
         println!("{:?}",keys);  // debug output showing auth headers
-        
+
         if keys.len() != 1 {
             return Outcome::Forward(());
         }

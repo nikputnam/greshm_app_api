@@ -26,7 +26,7 @@ impl Store {
         Store { 
             users:     RwLock::new( vec![] ), 
             txs:       RwLock::new( vec![] ),
-            income_rate: RwLock::new( 0.001 )
+            income_rate: RwLock::new( 0.00001 )
 
             } 
     }
