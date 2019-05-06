@@ -17,7 +17,7 @@ pub struct Store {
 
      users: RwLock<Vec<User>>,
      txs: RwLock<Vec<super::Transaction>>,
-     mint_rate: RwLock<f32>,
+     income_rate: RwLock<f32>,
 
 }
 
@@ -26,7 +26,7 @@ impl Store {
         Store { 
             users:     RwLock::new( vec![] ), 
             txs:       RwLock::new( vec![] ),
-            mint_rate: RwLock::new( 0.001 )
+            income_rate: RwLock::new( 0.001 )
 
             } 
     }
@@ -44,6 +44,7 @@ impl Store {
     pub fn get_balance_for_username( &self, username: &String) -> Result<super::Balance,String> {
         println!("get balance for {}", username);
         let users = self.users.read().unwrap();
+        let rate = self.income_rate.read().unwrap();
         let mut b=0.0;
         let mut time=0;
         let mut found=false;
@@ -58,7 +59,7 @@ impl Store {
         if !found {println!("not found"); return Err("No such user".to_string()) ;} ;
         println!("found");
 
-        Ok( super::Balance { balance: b, balance_time: time } )
+        Ok( super::Balance { balance: b, balance_time: time, income_rate: *rate } )
 
     }
 
@@ -104,7 +105,7 @@ impl Store {
 
         let mut ttx   = self.txs.write().unwrap();       //get both locks so they stay in sync.
         let mut users = self.users.write().unwrap();
-        let mint_rate = self.mint_rate.read().unwrap();
+        let income_rate = self.income_rate.read().unwrap();
 
         let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
 
@@ -112,7 +113,7 @@ impl Store {
         for user in  &mut(*users) {
             if  user.username == tx.from  {
                 let time_delta : f32 = (now - user.balance_time) as f32;
-                if (user.balance + time_delta * (*mint_rate) ) < tx.amount {
+                if (user.balance + time_delta * (*income_rate) ) < tx.amount {
                     return Err("insufficient funds\n".to_string())
                 }
             }

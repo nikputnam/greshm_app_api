@@ -54,6 +54,7 @@ impl Transaction {
 pub struct Balance {
     pub balance: f32,
     pub balance_time: u128,
+    pub income_rate: f32
 }
 
 #[get("/")]

@@ -66,7 +66,8 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
         let keys: Vec<_> = request.headers().get("Authorization").collect();
-
+        println!("{:?}",keys);  // debug output showing auth headers
+        
         if keys.len() != 1 {
             return Outcome::Forward(());
         }
@@ -81,11 +82,9 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthToken {
     }
 }
 
-
-
 ////////////////  JWT generation
 #[post("/",format = "application/json", data = "<data>")]
-pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<String, String> {
+pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<String, status::BadRequest<String> > {
 
     if let Ok(_) = store.valid_password( &data.username, &data.password  ) {
         let sub = format!("{}",data.username);  //TODO: replace this with an internal ID
@@ -95,10 +94,9 @@ pub fn auth(store: State<super::store::Store>, data: Json<Login>) -> Result<Stri
         let token = encode(&Header::default(), &my_claims, "secret_key".as_ref()).unwrap();
         Ok(format!("{}\n",token))
     } else {
-        Err("Authentication failed".to_string())
+        Err(status::BadRequest( Some("Authentication failed".to_string())))
     }
 }   
-
 
 ////////////////  User signup
 #[post("/",format = "application/json", data = "<user>")]
