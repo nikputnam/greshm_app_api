@@ -1,10 +1,17 @@
 # server
 
-to start:
+to start local server for dev and testing:
 
 ```sh
 rustup run nightly cargo run
 ```
+
+to start production server:
+
+```sh
+ROCKET_ENV=production rustup run nightly cargo run
+```
+
 
 # client test
 
