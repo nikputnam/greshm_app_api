@@ -73,9 +73,9 @@ $ cd greshm_app_api
 $ rustup install nightly
 ```
 
-7. Run server
+7. Run production server
 ```
-$ rustup run nightly cargo run
+$ ROCKET_ENV=production rustup run nightly cargo run
 ```
 
 
