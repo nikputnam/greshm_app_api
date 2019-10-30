@@ -68,12 +68,15 @@ ssh greshm@<remote_server_hostname>
 
 ```
 $ curl https://sh.rustup.rs -sSf | sh
+
+7. Clone the git repo.
+
 $ git clone https://github.com/nikputnam/greshm_app_api.git
 $ cd greshm_app_api
 $ rustup install nightly
 ```
 
-7. Run production server
+8. Run production server
 ```
 $ ROCKET_ENV=production rustup run nightly cargo run
 ```
