@@ -5,6 +5,8 @@ extern crate futures;
 extern crate foundationdb;
 use futures::future::*;
 use crate::store::foundationdb::tuple::Encode;
+//use rand::prelude::*;
+use rand::Rng;
 
 #[derive(Debug)]
 pub struct User {
@@ -42,7 +44,6 @@ impl Store {
             .and_then(|cluster| cluster.create_database())
             .wait().expect("failed to create Cluster");
 
-
        Store { 
             users:     RwLock::new( vec![] ), 
             txs:       RwLock::new( vec![] ),
@@ -51,7 +52,6 @@ impl Store {
             handle: h,
             db: d
         }
-       
     }
 
     pub fn user_exists( &self, username: &String) -> bool {
@@ -120,6 +120,27 @@ impl Store {
             result.push( k.clone() );
         }
         Ok(result)
+    }
+
+    pub fn database_healthy(&self) -> bool {
+
+        let dbtrx = self.db.create_trx().expect("failed to create transaction");
+        dbtrx.set_option(  foundationdb::options::TransactionOption::Timeout(3000) );
+
+        let random_bytes = rand::thread_rng().gen::<[u8; 32]>();
+
+        dbtrx.set(b"xxx" , &random_bytes.to_vec() ); // errors will be returned in the future result
+
+        dbtrx.commit()
+            .wait()
+            .expect("failed to set random bytes");
+
+        let trx = self.db.create_trx().expect("failed to create transaction");
+        let result = trx.get(b"xxx",false).wait().expect("failed to read back random bytes");
+        let value: &[u8] = result.value().expect("couldn't unpack results.");
+        value == random_bytes
+    //true
+
     }
 
     pub fn add_spend( &self, tx: super::Transaction) -> Result<String,String> {

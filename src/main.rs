@@ -112,9 +112,11 @@ fn main() {
 
     let store = store::Store::new() ;
 
+    println!("Let's make sure the database is up and running... ");
+    if (! store.database_healthy()) {panic!("database not healthy");}
+    println!("    ... and it looks healthy!");
 
     let allowed_origins = AllowedOrigins::all();
-
 
     // You can also deserialize this
     let cors = rocket_cors::CorsOptions {
