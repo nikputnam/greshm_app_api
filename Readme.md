@@ -1,10 +1,17 @@
 # server
 
-to start:
+to start local server for dev and testing:
 
 ```sh
 rustup run nightly cargo run
 ```
+
+to start production server:
+
+```sh
+ROCKET_ENV=production rustup run nightly cargo run
+```
+
 
 # client test
 
@@ -66,9 +73,9 @@ $ cd greshm_app_api
 $ rustup install nightly
 ```
 
-7. Run server
+7. Run production server
 ```
-$ rustup run nightly cargo run
+$ ROCKET_ENV=production rustup run nightly cargo run
 ```
 
 
