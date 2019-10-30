@@ -11,9 +11,11 @@ jsonwebtoken = "*"
 serde = "*"
 serde_json = "*"
 serde_derive="*"
+foundationdb = "*"
+futures = "0.1"
 rocket_cors = { git = "https://github.com/lawliet89/rocket_cors", branch = "master" }
 
 [dependencies.rocket_contrib]
-version = "0.4.0"
+version = "0.4.2"
 default-features = false
 features = ["json"]
