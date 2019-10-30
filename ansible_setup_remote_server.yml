@@ -4,8 +4,19 @@
 # Guide: https://www.digitalocean.com/community/tutorials/automating-initial-server-setup-with-ansible
 ###########################################################################################################
 
----
-- hosts: greshm_api
+- name: Bring up docker containers
+  hosts: localhost
+  gather_facts: false
+  vars:
+    inventory:
+      - name: greshm_api_server_test
+        image: "ubuntu:bionic"
+  roles:
+    - { role: provision_docker, provision_docker_inventory: "{{inventory}}" }
+
+
+- name: provision server
+  hosts: docker_containers
   remote_user: root
   gather_facts: false
   vars:

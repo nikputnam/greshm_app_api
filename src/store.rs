@@ -1,7 +1,12 @@
 use std::sync::RwLock;
 //use std::error::Error;
 use std::time::{SystemTime, UNIX_EPOCH};
-
+extern crate futures; 
+extern crate foundationdb;
+use futures::future::*;
+use crate::store::foundationdb::tuple::Encode;
+//use rand::prelude::*;
+use rand::Rng;
 
 #[derive(Debug)]
 pub struct User {
@@ -18,17 +23,35 @@ pub struct Store {
      users: RwLock<Vec<User>>,
      txs: RwLock<Vec<super::Transaction>>,
      income_rate: RwLock<f32>,
-
+     network: foundationdb::network::Network,
+     handle: std::thread::JoinHandle<()>,
+     db: foundationdb::Database 
 }
 
 impl Store {
     pub fn new() -> Store {
-        Store { 
+
+        let n = foundationdb::init().expect("failed to initialize Fdb client");
+        let h = std::thread::spawn(move || { 
+            let error = n.run();
+            if let Err(error) = error { panic!("fdb_run_network: {}",error)}
+
+         });
+        n.wait();
+
+        let config_path="docker.cluster";   
+        let d = foundationdb::Cluster::new(config_path)
+            .and_then(|cluster| cluster.create_database())
+            .wait().expect("failed to create Cluster");
+
+       Store { 
             users:     RwLock::new( vec![] ), 
             txs:       RwLock::new( vec![] ),
-            income_rate: RwLock::new( 0.00001 )
-
-            } 
+            income_rate: RwLock::new( 0.00001 ),
+            network: n,
+            handle: h,
+            db: d
+        }
     }
 
     pub fn user_exists( &self, username: &String) -> bool {
@@ -99,6 +122,27 @@ impl Store {
         Ok(result)
     }
 
+    pub fn database_healthy(&self) -> bool {
+
+        let dbtrx = self.db.create_trx().expect("failed to create transaction");
+        dbtrx.set_option(  foundationdb::options::TransactionOption::Timeout(3000) );
+
+        let random_bytes = rand::thread_rng().gen::<[u8; 32]>();
+
+        dbtrx.set(b"xxx" , &random_bytes.to_vec() ); // errors will be returned in the future result
+
+        dbtrx.commit()
+            .wait()
+            .expect("failed to set random bytes");
+
+        let trx = self.db.create_trx().expect("failed to create transaction");
+        let result = trx.get(b"xxx",false).wait().expect("failed to read back random bytes");
+        let value: &[u8] = result.value().expect("couldn't unpack results.");
+        value == random_bytes
+    //true
+
+    }
+
     pub fn add_spend( &self, tx: super::Transaction) -> Result<String,String> {
 
         if ! self.user_exists(&tx.to) { return Err("Recipient unknown\n".to_string()) }
@@ -127,8 +171,18 @@ impl Store {
                 user.balance = user.balance + tx.amount;
             }
         }
-        (*ttx).push(tx);
 
+        let dbtrx = self.db.create_trx().expect("failed to create transaction");
+
+        let txc = tx.clone();  // because the next line takes partial ownership of the strings or something 
+        let key = &( txc.from, txc.to ).to_vec();
+        dbtrx.set(key , &txc.amount.to_vec() ); // errors will be returned in the future result
+
+        dbtrx.commit()
+            .wait()
+            .expect("failed to set hello to world");
+
+        (*ttx).push(tx);
         Ok("added spend".to_string())
     }
 
