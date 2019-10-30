@@ -28,7 +28,7 @@ curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://lo
 
 to install on server:
 
-1. Setup Ansible on local machine
+1. Set up Ansible on local machine
 
 ```
 sudo apt update
@@ -45,10 +45,10 @@ sudo apt install ansible
 3. Add server to Ansible inventory file (/etc/ansible/hosts)
 
 ```
-[servers]
+[greshm_api]
 server1 ansible_host=<remote_server_hostname>
 
-[servers:vars]
+[greshm_api:vars]
 ansible_python_interpreter=/usr/bin/python3
 ```
 
