@@ -35,7 +35,7 @@ curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://lo
 
 to install on server:
 
-1. Setup Ansible on local machine
+1. Set up Ansible on local machine
 
 ```
 sudo apt update
@@ -52,10 +52,10 @@ sudo apt install ansible
 3. Add server to Ansible inventory file (/etc/ansible/hosts)
 
 ```
-[servers]
+[greshm_api]
 server1 ansible_host=<remote_server_hostname>
 
-[servers:vars]
+[greshm_api:vars]
 ansible_python_interpreter=/usr/bin/python3
 ```
 
@@ -75,12 +75,15 @@ ssh greshm@<remote_server_hostname>
 
 ```
 $ curl https://sh.rustup.rs -sSf | sh
+
+7. Clone the git repo.
+
 $ git clone https://github.com/nikputnam/greshm_app_api.git
 $ cd greshm_app_api
 $ rustup install nightly
 ```
 
-7. Run production server
+8. Run production server
 ```
 $ ROCKET_ENV=production rustup run nightly cargo run
 ```
