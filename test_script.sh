@@ -65,15 +65,15 @@ curl  -H 'Accept: application/json' -H "Authorization: ${token}" http://localhos
 echo
 echo; echo;
 
-echo "Wait 1 s"
-sleep 1
+echo "Wait 2 s"
+sleep 2
 echo; echo;
 
 echo "Try to spend as as nik, to bob"
 cat << 'EOM'
-]$ curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/1.01
+]$ curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/0.01
 EOM
-curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/1.01
+curl -X GET -H 'Accept: application/json' -H "Authorization: ${token}" http://localhost:8000/spend/bob/0.01
 echo
 echo; echo;
 

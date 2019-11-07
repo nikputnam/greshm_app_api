@@ -3,8 +3,12 @@ use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 extern crate futures; 
 extern crate foundationdb;
+use foundationdb::transaction::RangeOptionBuilder;
+
 use futures::future::*;
-use crate::store::foundationdb::tuple::Encode;
+//use crate::store::foundationdb::tuple::Encode;
+use foundationdb::tuple::{Decode, Encode};
+
 //use rand::prelude::*;
 use rand::Rng;
 
@@ -26,6 +30,13 @@ pub struct Store {
      network: foundationdb::network::Network,
      handle: std::thread::JoinHandle<()>,
      db: foundationdb::Database 
+}
+
+fn from_slice(bytes: &[u8]) -> [u8; 16] {
+    let mut array = [0; 16];
+    let bytes = &bytes[..array.len()]; // panics if not enough data
+    array.copy_from_slice(bytes); 
+    array
 }
 
 impl Store {
@@ -110,15 +121,58 @@ impl Store {
         Ok("added user".to_string())
     }
 
+
+
+
     pub fn get_recent_txs( &self, user: String) -> Result< Vec<super::Transaction> ,String> {
 
+// from the database
+
+
+        let timestamp = SystemTime::now();
+        let now: u128 = timestamp.duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+        let nowb = now.to_be_bytes().to_vec() ; //. to_str(); 
+
+        //let trx = self.db.create_trx().expect("failed to create transaction");
+        //let result = trx.get(b"xxx",false).wait().expect("failed to read back random bytes");
+        //let value: &[u8] = result.value().expect("couldn't unpack results.");
+        //let recv_range = RangeOptionBuilder::from(("greshm", "recv", &user )).build();
+
+        for ranget in [ "send", "recv"].iter() { 
+            let range = RangeOptionBuilder::from(("greshm", ranget, &user )).build();
+            //println!("range: {:?}", range);
+
+            for key_value in self.db.create_trx()
+                .unwrap()
+                .get_range(range, 1_024)
+                .wait()
+                .expect("get_range failed")
+                .key_values()
+                .into_iter()
+            {
+            //println!("k {:?}", key_value.key());
+            //println!("v {:?}", key_value.value());
+
+                let (_, sr, from, timestamp_bytes, to) = <(String, String, String, Vec<u8>, String)>::try_from(key_value.key()).unwrap();
+                let timestamp = u128::from_be_bytes(from_slice(&timestamp_bytes));
+                let (amount,) = <(f32,)>::try_from(key_value.value()).unwrap();
+                //let amount = <String>::try_from(key_value.value()).unwrap();
+//                println!("{} {} {}", from, sr, to);
+
+            println!("got a tx: {} {} {} {} {} {:?}", ranget, from, to, amount, timestamp, timestamp_bytes)
+            }
+        }
+
+// from the in-memory store
         let ttx = self.txs.read().unwrap();
         let mut result = Vec::new(); 
 
         for k in &(*ttx) {
             if !(( k.from == user )||( k.to == user ))  { continue; }
             result.push( k.clone() );
+            println!("mem tx: {:?}", k);
         }
+
         Ok(result)
     }
 
@@ -129,7 +183,10 @@ impl Store {
 
         let random_bytes = rand::thread_rng().gen::<[u8; 32]>();
 
-        dbtrx.set(b"xxx" , &random_bytes.to_vec() ); // errors will be returned in the future result
+        println!("random bytes {:?}", random_bytes);
+
+
+        dbtrx.set(b"xxx" , &random_bytes ); // errors will be returned in the future result
 
         dbtrx.commit()
             .wait()
@@ -138,6 +195,8 @@ impl Store {
         let trx = self.db.create_trx().expect("failed to create transaction");
         let result = trx.get(b"xxx",false).wait().expect("failed to read back random bytes");
         let value: &[u8] = result.value().expect("couldn't unpack results.");
+        println!("retrieved bytes {:?}", value);
+
         value == random_bytes
     //true
 
@@ -145,23 +204,29 @@ impl Store {
 
     pub fn add_spend( &self, tx: super::Transaction) -> Result<String,String> {
 
+        println!("###add spend ###");
+
         if ! self.user_exists(&tx.to) { return Err("Recipient unknown\n".to_string()) }
 
         let mut ttx   = self.txs.write().unwrap();       //get both locks so they stay in sync.
         let mut users = self.users.write().unwrap();
         let income_rate = self.income_rate.read().unwrap();
 
-        let now: u128 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+        let timestamp = SystemTime::now();
+        let now: u128 = timestamp.duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
 
         //Check for sufficient funds
         for user in  &mut(*users) {
             if  user.username == tx.from  {
                 let time_delta : f32 = (now - user.balance_time) as f32;
                 if (user.balance + time_delta * (*income_rate) ) < tx.amount {
+                    println!("###insufficient funds###");
+
                     return Err("insufficient funds\n".to_string())
                 }
             }
         }
+        println!("###funds ok###");
 
         for user in  &mut(*users) {
             if  user.username == tx.from  {
@@ -174,13 +239,20 @@ impl Store {
 
         let dbtrx = self.db.create_trx().expect("failed to create transaction");
 
+        let nowb = now.to_be_bytes().to_vec() ; //. to_str(); 
         let txc = tx.clone();  // because the next line takes partial ownership of the strings or something 
-        let key = &( txc.from, txc.to ).to_vec();
-        dbtrx.set(key , &txc.amount.to_vec() ); // errors will be returned in the future result
+//        let key = &( b"greshm", b"send", &nowb , &txc.from , &txc.to ).to_vec();
+        let key1 = &( "greshm", "send", &txc.from,  &nowb, &txc.to ).to_vec();
+        let key2 = &( "greshm", "recv", &txc.to,  &nowb, &txc.from ).to_vec();
+        dbtrx.set(key1 , &txc.amount.to_vec() ); // errors will be returned in the future result
+        dbtrx.set(key2 , &txc.amount.to_vec() ); // errors will be returned in the future result
+
+        println!("store: {:?} => {}", key1,  txc.amount);
+
 
         dbtrx.commit()
             .wait()
-            .expect("failed to set hello to world");
+            .expect("failed to commit transaction to db");
 
         (*ttx).push(tx);
         Ok("added spend".to_string())

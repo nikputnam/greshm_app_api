@@ -1,3 +1,10 @@
+# database cluster
+
+There should a file called 'docker.cluster' with the URI for the foundation db cluster.  
+It's contents should look like e.g. 'docker:docker@127.0.0.1:4550'
+
+You can use the scripts in `foundationdb/packaging/docker/samples/local` in the `https://github.com/apple/foundationdb` repo to start and stop foundationdb in a docker image.
+
 # server
 
 to start local server for dev and testing:
