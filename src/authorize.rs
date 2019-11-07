@@ -105,7 +105,6 @@ pub fn signup(store: State<super::store::Store>, user: Json<Signup>) -> Result<S
     }   // User already exists
     
     let new_user = super::store::User { 
-        id: 0 ,
         username: user.username.clone(),
         email: user.username.clone(),
         password: user.password.clone(),
